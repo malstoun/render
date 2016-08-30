@@ -132,11 +132,6 @@ func (r *Render) Prepare() {
 		// We don't care about IsDevelopment, it's before server's run, panic
 		panic(err)
 	}
-
-	// Create a new buffer pool for writing templates into.
-	if bufPool == nil {
-		bufPool = NewBufferPool(64)
-	}
 }
 
 func (r *Render) prepareConfig() {
@@ -317,11 +312,19 @@ func (r *Render) addLayoutFuncs(name string, binding interface{}) {
 			}
 			return "", nil
 		},
-		"render": func(fullPartialName string) (template.HTML, error) {
-			buf, err := r.Execute(fullPartialName, binding)
+		"render": func(fullPartialName string, pipe ...interface{}) (template.HTML, error) {
+			var (
+				buf *bytes.Buffer
+				err error
+			)
+
+			if len(pipe) > 0 {
+				buf, err = r.Execute(fullPartialName, pipe[0])
+			} else {
+				buf, err = r.Execute(fullPartialName, binding)
+			}
 			// Return safe HTML here since we are rendering our own template.
 			return template.HTML(buf.String()), err
-
 		},
 	}
 	if tpl := r.Templates.Lookup(name); tpl != nil {
